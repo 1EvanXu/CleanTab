@@ -1,0 +1,58 @@
+#!/bin/bash
+
+current_path=`pwd`;
+
+prod_dir=$current_path;
+
+project_name="clean-tab"
+
+dist_dir="clean-tab-prod";
+
+if [[ $current_path != */$project_name ]];then
+    echo "Current path: $current_path invalid."
+    exit 1;
+fi
+
+if [[ $current_path == */$project_name/bin ]];then
+    prod_dir="${current_dir}/.."
+fi
+
+function rename_assets_files() {
+    local assets_dir=${prod_dir}/$dist_dir/$1/assets
+
+    cd $assets_dir;
+
+    local files=($(ls ./))
+
+    for file in ${files[*]};
+    do
+        if [[ $file == index.*.css ]];then
+            mv $file "./$2.css"
+        fi
+
+        if [[ $file == index.*.js ]];then
+            mv $file "./$2.js"
+        fi
+    done
+}
+
+function update_index_html() {
+    local html_path=${prod_dir}/$dist_dir/$1/index.html;
+
+    if [ ! -f $html_path ];then
+        return 1;
+    fi
+    sed -i '' 's|'href=\"/favicon.ico\"'|'href="favicon.ico"'|g' $html_path
+    sed -i '' 's|/assets/.*\.js|'assets/${2}.js'|g' $html_path
+    sed -i '' 's|/assets/.*\.css|'assets/${2}.css'|g' $html_path
+}
+
+rename_assets_files settings settings;
+
+rename_assets_files side-panel side-panel;
+
+update_index_html settings settings;
+
+update_index_html side-panel side-panel;
+
+
