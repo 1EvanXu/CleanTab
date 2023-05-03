@@ -67,3 +67,6 @@ export enum TabStatus {
     loading = "loading",
     completed = "completed"
 }
+
+
+export type Port = chrome.runtime.Port

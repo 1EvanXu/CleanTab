@@ -1,64 +1,118 @@
 
+import { DuplicatedTabHandler } from "./clean-task/DuplicatedHandler";
+import { SettingsManager } from "./storage/SettingsManager";
+import { FutureTab, FutureTabManager } from "./tab-service/FutureTab";
 import {
-     TabEventsDispatcher,
-     TabEventsHandler,
+    TabEventsDispatcher,
+    TabEventsHandler,
 } from "./tab-service/TabEvent";
-import { TabInfoProxy, TabOperationProxy } from "./tab-service/TabsProxy";
-import { CTLog, StringUtils, UrlUtils } from "./tab-service/utils";
+import { TabInfoProxy } from "./tab-service/TabsProxy";
+import { CTLog, StringUtils, UrlUtils } from "./common/utils";
+import { BGLogRemoteServer } from "./common/Log";
 
 
 const onInstalled = (details: chrome.runtime.InstalledDetails) => {
-    CTLog.info("Installed success.")
+    CTLog.info("Installed success.", details)
+    BGLogRemoteServer.start()
 }
 
 // 插件初始化
 chrome.runtime.onInstalled.addListener(details => onInstalled(details));
 
 
-/**
- * Popup 弹出
- */
-chrome.action.onClicked.addListener(
-    () => {
-        CTLog.info("Icon clicked.")
-    }
-  )
-
-// 快捷键
-chrome.commands.onCommand.addListener(
-    (command, curTab) => {
-        CTLog.info(`onCommand ${command}.`)
-        if(command == "group-tabs") {
-            
-        } else if (command == "settings") {
-           openSettingsPage()
+chrome.runtime.onMessage.addListener(
+    (msg, sender, sendResponse) => {
+        if (msg.action == "logToBackground") {
+            CTLog.warn("Popup => ", msg.payload)
+        } else {
+            CTLog.debug("OnMessage", "msg=", msg, "sender=", sender, "sendResponse=", sendResponse)
+            handleMessage(msg, sendResponse)
         }
     }
 )
 
-const openSettingsPage = () => {
-    const settingsUrl = chrome.runtime.getURL("settings/index.html")
-    chrome.tabs.create({
-        url: settingsUrl
-    });
+chrome.runtime.onConnect.addListener(
+    port => {
+        CTLog.debug("new connetion established => ", port)
+        if (port.name == "CleanTabService") {
+            port.onMessage.addListener((message, innerPort) => {
+                CTLog.debug("connection received message => ", innerPort, message)
+                if (message.action == "ACK") {
+                    const retMsg = {}
+                    Object.assign(retMsg, message)
+                    innerPort.postMessage(retMsg)
+                } else {
+                    handleMessage(message, (res?: any) => {
+                        const retMsg = {
+                            action: message.action,
+                            payload: res,
+                            requestId: message.requestId
+                        }
+                        innerPort.postMessage(retMsg)
+                    })
+                }
+            })
+        }
+        port.onDisconnect.addListener(port => {
+            CTLog.warn("Connection destroyed => ", port)
+        })
+    }
+)
+
+
+const handleMessage = (message: any, sendResponse: (res?: any) => void) => {
+    if (message.action == "getDuplicatedTabs") {
+        DuplicatedTabHandler.getDuplicatedTabs().then(
+            duplicatedTabs => {
+                const cleanTasks = duplicatedTabs.map(
+                    record => {
+                        return {
+                            taskId: record.reserved,
+                            url: record.url,
+                            count: record.count(),
+                            cleand: false
+                        }
+                    }
+                )
+                sendResponse(cleanTasks)
+            }
+        )
+    } else if (message.action == "getSettingsInfo") {
+        const settingInfo = SettingsManager.getSettings()
+        sendResponse(settingInfo)
+    } else if (message.action == "updateSettings") {
+        if (message.payload) {
+            SettingsManager.updateSettings(message.payload)
+        }
+    } else if (message.action == 'getCurrentDoaminDisabled') {
+        TabInfoProxy.getHighlighted().then(
+            tab => {
+                if (UrlUtils.isHttpUrl(tab.url)) {
+                    const currentDomain = UrlUtils.getHostName(tab.url)
+                    let disabled = false; 
+                    if (currentDomain) {
+                        disabled = SettingsManager.getSettings().disabledDomainList.indexOf(currentDomain) > -1
+                    }
+                    sendResponse({currentDomain, disabled})
+                }
+            }
+        )
+    }
 }
 
 
-
 class TabInfoChangeHandler extends TabEventsHandler {
-    
+
     handleUpdated(tabId: number, changeInfo: chrome.tabs.TabChangeInfo, tab: chrome.tabs.Tab): boolean {
-        CTLog.info("handleUpdated", changeInfo)
-        const ft = ftm.get(tabId)
-        if(ft && changeInfo.url && StringUtils.isNotEmpty(changeInfo.url)) {
-            ft.setUrl(changeInfo.url)
+        const futureTab = FutureTabManager.get(tabId)
+        if (futureTab && changeInfo.url && StringUtils.isNotEmpty(changeInfo.url)) {
+            futureTab.setUrl(changeInfo.url)
         }
         return true;
     }
     handleCreated(tab: chrome.tabs.Tab): boolean {
-        CTLog.info("handleCreated", tab)
-        if(tab.id) {
-            ftm.add(
+        if (tab.id) {
+            FutureTabManager.add(
                 new FutureTab(tab.id, DuplicatedTabHandler.observeFutureUrl)
             )
         }
@@ -72,75 +126,4 @@ TabEventsDispatcher.init();
 
 TabEventsDispatcher.register(changeHandler);
 
-type TabUrlObserver = (tabId: number, url: string) => void
-
-class FutureTab {
-    
-    tabId: number
-
-    url?: string
-
-    private observer?: TabUrlObserver
-
-    constructor(tabId: number, _observer: TabUrlObserver) {
-        this.tabId = tabId
-        this.observer = _observer
-    }
-
-    setUrl(url: string) {
-        if (!this.url) {
-            this.url = url
-            if (this.observer) {
-                this.observer(this.tabId, url)
-            }
-        }
-        
-    }
-}
-
-class FutureTabManager {
-    private futureTabs: FutureTab[] = []
-
-    add(ft: FutureTab) {
-        if(this.get(ft.tabId)) {
-            return
-        }
-        this.futureTabs.push(ft)
-    }
-
-    get(tabId: number): FutureTab|void {
-        return this.futureTabs.find(
-            value => value.tabId === tabId
-        )
-    }
-
-    remove(tabId: number) {
-        
-    }
-}
-
-const ftm = new FutureTabManager()
-
-namespace DuplicatedTabHandler {
-    export async function observeFutureUrl(tabId: number, url: string) {
-        if (!UrlUtils.isChromeUrl(url)){
-            CTLog.debug("observeFutureUrl", tabId, url)
-            const tabs = await TabInfoProxy.getByUrl(url)
-            CTLog.debug("observeFutureUrl", tabs)
-            const tabsAfterFilter = tabs?.filter(value => value.id != tabId)
-            CTLog.debug("observeFutureUrl-tabsAfterFilter", tabsAfterFilter)
-            if(tabsAfterFilter && tabsAfterFilter.length > 0) {
-                
-                setTimeout(() => {
-                    if (tabsAfterFilter[0].id) {
-                        CTLog.debug("active", tabsAfterFilter[0])
-                        TabOperationProxy.remove(tabId)
-                        TabOperationProxy.active(tabsAfterFilter[0].id)
-                    }
-                }, 2000)
-            }
-            ftm.remove(tabId)
-        }
-    }
-
-}
+SettingsManager.init()

@@ -1,6 +1,6 @@
 
-import { GroupOptions, Tab } from "./TabTypes";
-import { UrlUtils } from "./utils";
+import { GroupOptions, Tab } from "../common/ChromeExtensionTypes";
+import { UrlUtils } from "../common/utils";
 
 /**
  * Tab信息查询统一接口

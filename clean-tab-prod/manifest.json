@@ -17,13 +17,12 @@
 			"64": "asset/icon-64.png",
 			"128": "asset/icon-128.png"
 		},
-    	"default_title" : "Click to group tabs."
+    	"default_title" : "Click to group tabs.",
+		"default_popup": "popup/index.html"
   	},
 	"permissions": [
 		"activeTab",
-		"scripting",
 		"tabs",
-		"tabGroups",
 		"storage"
 	],
 	"background": {
@@ -37,20 +36,6 @@
 			  "mac": "Alt+Shift+T"
 		  },
 		  "description": "Group tabs by some rules"
-		},
-		"settings": {
-			"suggested_key": {
-			  "default": "Alt+Shift+S",
-			  "mac": "Alt+Shift+S"
-			},
-			"description": "Open Settings page"
-		},
-		"enable-side-panel": {
-			"suggested_key": {
-			  "default": "Alt+Shift+P",
-			  "mac": "Alt+Shift+P"
-			},
-			"description": "Enable Side Panel."
 		}
 	}
 }

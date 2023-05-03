@@ -17,12 +17,13 @@
 			"64": "asset/icon-64.png",
 			"128": "asset/icon-128.png"
 		},
-    	"default_title" : "Click to group tabs."
+    	"default_title" : "Click to group tabs.",
+		"default_popup": "popup/index.html"
   	},
 	"permissions": [
 		"activeTab",
-		"scripting",
-		"tabs"
+		"tabs",
+		"storage"
 	],
 	"background": {
 		"service_worker": "background.js",

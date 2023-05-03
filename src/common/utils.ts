@@ -1,3 +1,6 @@
+import { BGLogger } from "./Log";
+import { ChromeMessage } from "./message";
+
 namespace UrlUtils {
 
     export function compareUrl(urlA?: string, urlB?: string): boolean{
@@ -89,24 +92,10 @@ namespace StringUtils {
     }
 }
 
-namespace CTLog {
-    const tag = "CleanTab"
-    export function info(...msg: any) {
-        console.info(tag, "[info]", ...msg);
-    }
 
-    export function debug(...msg: any) {
-        console.debug(tag, "[debug]", ...msg);
-    }
 
-    export function warn(...msg: any) {
-        console.warn(tag, "[warn]", ...msg)
-    }
-
-    export function error(...msg: any) {
-        console.error(tag, "[error]", ...msg)
-    }
-}
+const CTLog = new BGLogger()
+CTLog.setTag("CleanTab")
 
 export  {
     CTLog, UrlUtils, StringUtils

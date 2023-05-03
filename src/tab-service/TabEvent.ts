@@ -1,4 +1,4 @@
-import { Tab, TabActiveInfo, TabAttachInfo, TabChangeInfo, TabDetachInfo, TabHighlightInfo, TabMoveInfo, TabRemoveInfo, ZoomChangeInfo } from "./TabTypes";
+import { Tab, TabActiveInfo, TabAttachInfo, TabChangeInfo, TabDetachInfo, TabHighlightInfo, TabMoveInfo, TabRemoveInfo, ZoomChangeInfo } from "../common/ChromeExtensionTypes";
 
 export abstract class TabEventsHandler {
     handleCreated(tab: Tab): boolean {
