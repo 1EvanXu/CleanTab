@@ -71,6 +71,10 @@ export namespace CleanTabService {
         retData.disabled = response.disabled
         return retData
     }
+
+    export function performCleanTask(taskIdList: number[]) {
+        send(new CTRequest("performCleanTask", { taskIdList }))
+    }
 }
 
 

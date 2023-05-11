@@ -2,17 +2,17 @@ import { FutureTabManager } from "../tab-service/FutureTab"
 import { TabInfoProxy, TabOperationProxy } from "../tab-service/TabsProxy"
 import { UrlUtils, CTLog } from "../common/utils"
 import { SettingsManager } from "../storage/SettingsManager"
+import { TabCleanTask } from "../common/TabCleanTask"
 
-class DuplicatedTabRecord {
-    url: string
-    title: string | undefined
-    favicon: string | undefined
+class DuplicatedTabRecord extends TabCleanTask {
     tabIds: Array<number>
     reserved: number | undefined
 
-    constructor(url: string, ) {
+    constructor(url: string) {
+        super()
         this.url = url
         this.tabIds = new Array<number>()
+        this.tabId = -1
     }
 
     add(tabId: number) {
@@ -35,7 +35,7 @@ class DuplicatedTabRecord {
 }
 
 export namespace DuplicatedTabHandler {
-
+    
     function shouldAutoClean(url: string) {
         const settings = SettingsManager.getSettings()
         if (settings.cleanMode != 'auto') {
@@ -83,7 +83,11 @@ export namespace DuplicatedTabHandler {
                 }
 
                 if(!dupMap.has(tab.url)) {
-                    dupMap.set(tab.url, new DuplicatedTabRecord(tab.url))
+                    const tabRecord = new DuplicatedTabRecord(tab.url)
+                    tabRecord.title = tab.title
+                    tabRecord.tabId = tab.id?? -1
+                    tabRecord.favicon = tab.favIconUrl
+                    dupMap.set(tab.url, tabRecord)
                 }
                 const record = dupMap.get(tab.url)
                 if (record && tab.id) {
@@ -94,7 +98,7 @@ export namespace DuplicatedTabHandler {
                 }
             }
         )
-        
+
         dupMap.forEach(
             record => {
                 if (record.count() > 1) {
@@ -102,10 +106,11 @@ export namespace DuplicatedTabHandler {
                 }
             }
         )
+        
         return recordList;
     }
 
-    export async function cleanDuplicatedTabs() {
+    export async function cleanDuplicatedTabs(tasks: TabCleanTask[]) {
         const dupRecords = await getDuplicatedTabs()
         dupRecords.forEach(
             record => {
@@ -117,4 +122,7 @@ export namespace DuplicatedTabHandler {
             }
         )
     }
+
+    const cleanTaskHistory: TabCleanTask[] = []
+
 }

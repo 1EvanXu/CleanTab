@@ -98,6 +98,17 @@ const SettingPanel = (props: { onCloseSettings?: () => void }) => {
         },
         {
             key: 2,
+            title: "Disable Notification",
+            children: (
+                <Switch
+                    size='small'
+                    checked={settings.disableNotification}
+                    onChange={handleDisableNotification}
+                />
+            )
+        },
+        {
+            key: 3,
             title: "Disable Global",
             children: (
                 <Switch
@@ -109,7 +120,7 @@ const SettingPanel = (props: { onCloseSettings?: () => void }) => {
             )
         },
         {
-            key: 3,
+            key: 4,
             title: "Disable in this domain",
             tooltip: domainState.currentDomain ? `current: ${domainState.currentDomain}`: undefined,
             children: (
@@ -121,17 +132,6 @@ const SettingPanel = (props: { onCloseSettings?: () => void }) => {
                 />
             )
         },
-        {
-            key: 4,
-            title: "Disable Notification",
-            children: (
-                <Switch
-                    size='small'
-                    checked={settings.disableNotification}
-                    onChange={handleDisableNotification}
-                />
-            )
-        }
     ]
 
     const settingItems = settingItemData.map(

@@ -27,11 +27,19 @@ function rename_assets_files() {
     for file in ${files[*]};
     do
         if [[ $file == index-*.css ]];then
+            echo 💥 检测到 $file 生成
             mv $file "./$2.css"
+            echo 🌈 文件重命名 $file → $2.css
+            update_index_html popup popup css
+            echo ""
         fi
 
         if [[ $file == index-*.js ]];then
+            echo 💥 检测到 $file 生成
             mv $file "./$2.js"
+            echo 🌈 文件重命名 $file → $2.js
+            update_index_html popup popup js
+            echo ""
         fi
     done
 }
@@ -43,35 +51,21 @@ function update_index_html() {
         return 1;
     fi
     sed -i '' 's|'href=\"/favicon.ico\"'|'href="favicon.ico"'|g' $html_path
-    sed -i '' 's|/assets/.*\.js|'assets/${2}.js'|g' $html_path
-    sed -i '' 's|/assets/.*\.css|'assets/${2}.css'|g' $html_path
+    echo ✅ 更新index.html favicon.ico
+    if [[ $3==js ]];then
+        sed -i '' 's|/assets/.*\.js|'assets/${2}.js'|g' $html_path
+        echo ✅  更新index.html ${2}.js
+    fi
+    if [[ $3=css ]];then
+        sed -i '' 's|/assets/.*\.css|'assets/${2}.css'|g' $html_path
+        echo ✅  更新index.html ${2}.css
+    fi
 }
-
-function get_file_change_time() {
-    local target_file=${prod_dir}/$dist_dir/$1/index.html
-    local info=($(ls -lc ${target_file}))
-    local len=${#info[@]}
-    if [ len > 1 ];then
-        echo ${info[len-2]}
-    fi 
-}
-
-
-pre_change_time=$(get_file_change_time popup)
 
 echo "文件自动更新任务启动 🚀 🚀 🚀"
 while true
 do
-    cur_change_time=$(get_file_change_time popup)
-    if [[ $pre_change_time != $cur_change_time ]];then
-        echo ""
-        echo "➡️ 检测到文件改变."
-        echo "➡️ 执行assets重命名."
-        rename_assets_files popup popup;
-        echo "➡️ 更新index.html"
-        update_index_html popup popup;
-        pre_change_time=$cur_change_time
-    fi
+    rename_assets_files popup popup;
     sleep 3
 done
 

@@ -64,16 +64,35 @@ const handleMessage = (message: any, sendResponse: (res?: any) => void) => {
     if (message.action == "getDuplicatedTabs") {
         DuplicatedTabHandler.getDuplicatedTabs().then(
             duplicatedTabs => {
-                const cleanTasks = duplicatedTabs.map(
-                    record => {
-                        return {
-                            taskId: record.reserved,
-                            url: record.url,
-                            count: record.count(),
-                            cleand: false
+                let cleanTasks;
+                if (SettingsManager.getSettings().cleanMode == 'auto') {
+                    cleanTasks = FutureTabManager.getAllCleaned().map(
+                        record => {
+                            return {
+                                taskId: record.taskId,
+                                favicon: record.favicon,
+                                title: record.title,
+                                url: record.url,
+                                count: 2,
+                                cleand: record.cleaned
+                            }
                         }
-                    }
-                )
+                    )
+                } else {
+                    cleanTasks = duplicatedTabs.map(
+                        record => {
+                            return {
+                                taskId: record.taskId,
+                                favicon: record.favicon,
+                                title: record.title,
+                                url: record.url,
+                                count: record.count(),
+                                cleand: false
+                            }
+                        }
+                    )
+                }
+                
                 sendResponse(cleanTasks)
             }
         )
@@ -97,19 +116,24 @@ const handleMessage = (message: any, sendResponse: (res?: any) => void) => {
                 }
             }
         )
+    } else if (message.action == 'performCleanTask' && message.payload) {
+
     }
 }
 
 
 class TabInfoChangeHandler extends TabEventsHandler {
 
-    handleUpdated(tabId: number, changeInfo: chrome.tabs.TabChangeInfo, tab: chrome.tabs.Tab): boolean {
+    handleUpdated(tabId: number, changeInfo: chrome.tabs.TabChangeInfo, _tab: chrome.tabs.Tab): boolean {
         const futureTab = FutureTabManager.get(tabId)
-        if (futureTab && changeInfo.url && StringUtils.isNotEmpty(changeInfo.url)) {
+        if (futureTab) {
             futureTab.setUrl(changeInfo.url)
+            futureTab.setFavicon(changeInfo.favIconUrl)
+            futureTab.setTitle(changeInfo.title)
         }
         return true;
     }
+    
     handleCreated(tab: chrome.tabs.Tab): boolean {
         if (tab.id) {
             FutureTabManager.add(

@@ -1,5 +1,4 @@
 import { BGLogger } from "./Log";
-import { ChromeMessage } from "./message";
 
 namespace UrlUtils {
 
@@ -28,6 +27,9 @@ namespace UrlUtils {
             if (queryParams1.get(key) != queryParams2.get(key)) {
                 return false;
             }
+        }
+        if (url1.hash != url2.hash) {
+            return false;
         }
         return true;
     }
