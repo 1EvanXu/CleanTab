@@ -67,29 +67,11 @@ const handleMessage = (message: any, sendResponse: (res?: any) => void) => {
                 let cleanTasks;
                 if (SettingsManager.getSettings().cleanMode == 'auto') {
                     cleanTasks = FutureTabManager.getAllCleaned().map(
-                        record => {
-                            return {
-                                taskId: record.taskId,
-                                favicon: record.favicon,
-                                title: record.title,
-                                url: record.url,
-                                count: 2,
-                                cleand: record.cleaned
-                            }
-                        }
+                        record => record.newObject()
                     )
                 } else {
                     cleanTasks = duplicatedTabs.map(
-                        record => {
-                            return {
-                                taskId: record.taskId,
-                                favicon: record.favicon,
-                                title: record.title,
-                                url: record.url,
-                                count: record.count(),
-                                cleand: false
-                            }
-                        }
+                        record => record.newObject()
                     )
                 }
                 
@@ -117,7 +99,9 @@ const handleMessage = (message: any, sendResponse: (res?: any) => void) => {
             }
         )
     } else if (message.action == 'performCleanTask' && message.payload) {
-
+        if (message.payload.taskIdList) {
+            DuplicatedTabHandler.cleanDuplicatedTabs(message.payload.taskIdList)
+        }
     }
 }
 
@@ -126,6 +110,7 @@ class TabInfoChangeHandler extends TabEventsHandler {
 
     handleUpdated(tabId: number, changeInfo: chrome.tabs.TabChangeInfo, _tab: chrome.tabs.Tab): boolean {
         const futureTab = FutureTabManager.get(tabId)
+        CTLog.debug("futureTab", futureTab)
         if (futureTab) {
             futureTab.setUrl(changeInfo.url)
             futureTab.setFavicon(changeInfo.favIconUrl)

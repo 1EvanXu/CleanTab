@@ -12,5 +12,6 @@ export type CleanTaskType = {
 
 export const NotificationContext = createContext({
     cleanMode: 'auto',
-    cleanTasks: new Array<CleanTaskType>()
+    cleanTasks: new Array<CleanTaskType>(),
+    onClean: (_taskId: number) => {}
 })

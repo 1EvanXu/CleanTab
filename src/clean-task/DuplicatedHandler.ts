@@ -35,6 +35,8 @@ class DuplicatedTabRecord extends TabCleanTask {
 }
 
 export namespace DuplicatedTabHandler {
+
+    let dupTabRecordList = new Array<DuplicatedTabRecord>()
     
     function shouldAutoClean(url: string) {
         const settings = SettingsManager.getSettings()
@@ -56,7 +58,7 @@ export namespace DuplicatedTabHandler {
             
             const tabs = await TabInfoProxy.getByUrl(url)
 
-            const tabsAfterFilter = tabs?.filter(value => value.id != tabId)
+            const tabsAfterFilter = tabs?.filter(tab => tab.id != tabId)
 
             if(tabsAfterFilter && tabsAfterFilter.length > 0) {
                 
@@ -72,57 +74,50 @@ export namespace DuplicatedTabHandler {
     }
 
     export async function getDuplicatedTabs(): Promise<DuplicatedTabRecord[]> {
-        const dupMap = new Map<string, DuplicatedTabRecord>()
-        const recordList = new Array<DuplicatedTabRecord>()
         const tabs = await TabInfoProxy.getAll()
-        
         tabs.forEach(
             tab => {
                 if(!tab.url || !UrlUtils.isHttpUrl(tab.url)) {
                     return
                 }
 
-                if(!dupMap.has(tab.url)) {
-                    const tabRecord = new DuplicatedTabRecord(tab.url)
-                    tabRecord.title = tab.title
-                    tabRecord.tabId = tab.id?? -1
-                    tabRecord.favicon = tab.favIconUrl
-                    dupMap.set(tab.url, tabRecord)
-                }
-                const record = dupMap.get(tab.url)
-                if (record && tab.id) {
-                    record.add(tab.id)
-                    if(!tab.discarded) {
-                        record.reserved = tab.id
+                let record = dupTabRecordList.find(
+                    r => {
+                        return tab.url == r.url && !r.cleaned
                     }
+                )
+                if (tab.id) {
+                    if (record) {
+                        if(!tab.discarded) {
+                            record.reserved = tab.id
+                        }
+                    } else {
+                        record = new DuplicatedTabRecord(tab.url)
+                        record.title = tab.title
+                        record.tabId = -1
+                        record.favicon = tab.favIconUrl
+                        dupTabRecordList.push(record)
+                    }
+                    record.add(tab.id)
                 }
             }
         )
-
-        dupMap.forEach(
-            record => {
-                if (record.count() > 1) {
-                    recordList.push(record)
-                }
-            }
-        )
-        
-        return recordList;
+        dupTabRecordList = dupTabRecordList.filter(r => r.count() > 1)
+        return dupTabRecordList;
     }
 
-    export async function cleanDuplicatedTabs(tasks: TabCleanTask[]) {
-        const dupRecords = await getDuplicatedTabs()
-        dupRecords.forEach(
-            record => {
+    export async function cleanDuplicatedTabs(taskIds: number[]) {
+        const records = await getDuplicatedTabs()
+        const toClean = records.filter(r => taskIds.indexOf(r.taskId) > -1 && !r.cleaned)
+        toClean.forEach(
+            item => {
                 try {
-                    TabOperationProxy.batchRemove(...record.getDuplicatedTabIds())
+                    TabOperationProxy.batchRemove(...item.getDuplicatedTabIds())
+                    item.cleaned = true
                 } catch (e) {
-                    CTLog.error(e)
+                    CTLog.warn(e)
                 }
             }
         )
     }
-
-    const cleanTaskHistory: TabCleanTask[] = []
-
 }

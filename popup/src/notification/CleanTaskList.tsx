@@ -7,6 +7,10 @@ import { CleanTaskType, NotificationContext } from './NotificationContext';
 const { Text } = Typography
 
 const CleanTask = (prop: { data: CleanTaskType }) => {
+
+    const {data} = prop
+    const { onClean } = useContext(NotificationContext)
+
     const iconUnCleanedStyle: React.CSSProperties = { cursor: 'pointer', color: 'orange' }
 
     const iconCleanedStyle = { color: 'green' }
@@ -15,26 +19,32 @@ const CleanTask = (prop: { data: CleanTaskType }) => {
         <>
             <Row style={{ marginTop: 3 }}>
                 <Col span={3} style={{ textAlign: "center" }}>
-                    <Avatar size={18} src={prop.data.favicon} />
+                    <Avatar size={18} src={data.favicon} />
                 </Col>
                 <Col span={17} style={{ paddingLeft: 2, paddingRight: 2 }}>
-                    <Tooltip title={prop.data.url}>
-                        <Text ellipsis={true}>{prop.data.title}</Text>
+                    <Tooltip title={data.url + data.taskId}>
+                        <Text ellipsis={true}>{data.title}</Text>
                     </Tooltip>
                 </Col>
                 <Col span={2}>
-                    <Text strong type='secondary'>{prop.data.count}</Text>
+                    <Text strong type='secondary'>{data.count}</Text>
                 </Col>
                 <Col span={2} >
                     {
-                        prop.data.cleand ?
+                        data.cleand ?
                             (
                                 <Tooltip title="已清理">
                                     <CheckCircleOutlined style={iconCleanedStyle} />
                                 </Tooltip>
                             )
                             :
-                            <ClearOutlined style={iconUnCleanedStyle} />
+                            <ClearOutlined style={iconUnCleanedStyle} onClick={
+                                () => {
+                                    if (onClean) {
+                                        onClean(data.taskId)
+                                    }
+                                }
+                            }/>
                     }
                 </Col>
             </Row>

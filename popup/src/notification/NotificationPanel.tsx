@@ -1,4 +1,4 @@
-import { Layout, Button, Row, Col, Tooltip } from 'antd'
+import { Layout, Button, Row, Col, Tooltip, Avatar } from 'antd'
 import { SettingOutlined, ClearOutlined, CheckCircleOutlined } from '@ant-design/icons'
 import CleanTaskList from './CleanTaskList';
 import { useEffect, useState } from 'react';
@@ -34,14 +34,38 @@ const NotificationPanel = (props: { onOpenSettings?: () => void }) => {
 
     const [cleanMode, setCleanMode] = useState<string>('auto')
 
+    const [iconUrl, setIconUrl] = useState<string>('')
+
     const onSettingBtnClick = () => {
         if (props.onOpenSettings) {
             props.onOpenSettings()
         }
     }
 
-    const onCleanAll = () => {
+    const onClean = (taskId: number) => {
+        const newTaskList = new Array<CleanTaskType>()
+        cleanTasks.forEach(
+            item => {
+                if (item.taskId == taskId) {
+                    item.cleand = true
+                }
+                newTaskList.push(item)
+            }
+        )
+        setCleanTasks(newTaskList)
+        CleanTabService.performCleanTask([taskId])
+    }
 
+    const onCleanAll = () => {
+        const newTaskList = new Array<CleanTaskType>()
+        cleanTasks.forEach(
+            item => {
+                item.cleand = true
+                newTaskList.push(item)
+            }
+        )
+        const taskIdList = newTaskList.map(item => item.taskId)
+        CleanTabService.performCleanTask(taskIdList)
     }
 
     useEffect(
@@ -49,17 +73,16 @@ const NotificationPanel = (props: { onOpenSettings?: () => void }) => {
             CleanTabServiceSession.getDuplicatedTabs((res) => {
                 setCleanTasks(res)
             })
-
-        }, []
-    )
-
-    useEffect(
-        () => {
+            
             CleanTabService.getSettingsInfo().then(
                 settings => {
                     setCleanMode(settings.cleanMode)
                 }
             )
+
+            const url = chrome.runtime.getURL('./asset/icon-128.png')
+            setIconUrl(url)
+
         }, []
     )
     
@@ -67,13 +90,13 @@ const NotificationPanel = (props: { onOpenSettings?: () => void }) => {
     
     return (
         <NotificationContext.Provider value={{
-            cleanMode, cleanTasks
+            cleanMode, cleanTasks, onClean
         }}>
             <Layout >
                 <Header style={headerStyle}>
                     <Row>
                         <Col span={20}>
-                            CleanTab
+                            <Avatar size={20} src={iconUrl} /> CleanTab
                         </Col>
                         <Col span={4}>
                             <Tooltip title="Change Your Config">

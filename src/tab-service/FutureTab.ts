@@ -15,26 +15,34 @@ export class FutureTab extends TabCleanTask {
 
     setUrl(url?: string) {
         
-        if (!this.url) {
-            if (url && StringUtils.isNotEmpty(url)) {
-                this.url = url
-                if (this.observer) {
-                    this.observer(this.tabId, url)
-                }
+        if (!this.url && url && StringUtils.isNotEmpty(url)) {
+            this.url = url
+            if (this.observer && this.title && this.favicon) {
+                this.observer(this.tabId, this.url)
             }
         }
     }
 
     setTitle(title?: string) {
-        if(StringUtils.isNotEmpty(title)) {
+        if (!this.title && title && StringUtils.isNotEmpty(title)) {
             this.title = title
+            if (this.observer && this.url && this.favicon) {
+                this.observer(this.tabId, this.url)
+            }
         }
     }
 
     setFavicon(favicon?: string) {
-        if(StringUtils.isNotEmpty(favicon)) {
+        if (!this.favicon && favicon && StringUtils.isNotEmpty(favicon)) {
             this.favicon = favicon
+            if (this.observer && this.url && this.title) {
+                this.observer(this.tabId, this.url)
+            }
         }
+    }
+
+    count(): number {
+        return 2
     }
 }
 
